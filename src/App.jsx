@@ -44,23 +44,52 @@ function App() {
     
     try {
       setLoading(true)
-      const tensor = tf.browser
-        .fromPixels(imageRef.current)
-        .resizeNearestNeighbor([256, 256]) 
+      
+      // Log image dimensions before processing
+      console.log(`Original image dimensions: ${imageRef.current.naturalWidth}x${imageRef.current.naturalHeight}`);
+      
+      // Create a canvas with exact dimensions to ensure consistency
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = 224;
+      canvas.height = 224;
+      
+      // Draw image to canvas with exact dimensions
+      ctx.drawImage(imageRef.current, 0, 0, 224, 224);
+      
+      // Get tensor from canvas instead of directly from image
+      const tensor = tf.browser.fromPixels(canvas)
         .toFloat()
-        .div(255.0) 
-        .expandDims()
+        .div(255.0)
+        .expandDims();
+      
+      // Log tensor shape and sample values for debugging
+      const tensorData = tensor.dataSync();
+      console.log('Tensor shape:', tensor.shape);
+      console.log('Tensor sample (first 10 values):', Array.from(tensorData.slice(0, 10)));
 
-      const prediction = model.predict(tensor)
-      const predictionData = await prediction.data()
-      const predictedIndex = predictionData.indexOf(Math.max(...predictionData))
+      const prediction = model.predict(tensor);
+      const predictionData = await prediction.data();
+      
+      // Log raw prediction values
+      console.log('Raw prediction values:', Array.from(predictionData));
+      
+      const predictedIndex = predictionData.indexOf(Math.max(...predictionData));
+      console.log('Prediction Data:', predictionData);
+      console.log('Predicted Index:', predictedIndex);
+      console.log('Confidence:', predictionData[predictedIndex]);
+      
+      // Clean up tensors to prevent memory leaks
+      tensor.dispose();
+      prediction.dispose();
+
       
       // Informasi penyakit berdasarkan referensi
       const diseaseInfos = [
         {
-          label: 'Layu Bakteri',
-          cause: 'Disebabkan oleh bakteri Ralstonia solanacearum yang menyerang jaringan pembuluh tanaman.',
-          solution: 'Gunakan bibit sehat, rotasi tanaman, dan buang tanaman yang terinfeksi.',
+          label: 'Hawar Daun',
+          cause: 'Disebabkan oleh jamur Phytophthora infestans yang menyerang daun, batang, dan umbi.',
+          solution: 'Gunakan fungisida sistemik, tanam varietas tahan, dan hindari kelembapan berlebih.',
         },
         {
           label: 'Hawar Kering',
@@ -68,9 +97,9 @@ function App() {
           solution: 'Gunakan fungisida, buang daun terinfeksi, dan lakukan rotasi tanaman.',
         },
         {
-          label: 'Hawar Daun',
-          cause: 'Disebabkan oleh jamur Phytophthora infestans yang menyerang daun, batang, dan umbi.',
-          solution: 'Gunakan fungisida sistemik, tanam varietas tahan, dan hindari kelembapan berlebih.',
+          label: 'Layu Bakteri',
+          cause: 'Disebabkan oleh bakteri Ralstonia solanacearum yang menyerang jaringan pembuluh tanaman.',
+          solution: 'Gunakan bibit sehat, rotasi tanaman, dan buang tanaman yang terinfeksi.',
         },
         {
           label: 'Nematoda',
